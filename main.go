@@ -1,14 +1,19 @@
 package main
 
 import (
+	_ "embed"
 	"fmt"
 	"log"
 	"strings"
 
 	"github.com/eiannone/keyboard"
+
 	"github.com/senorL/TransCLI/conf"
 	"github.com/senorL/TransCLI/translate"
 )
+
+//go:embed asset/dict.txt
+var dict string
 
 func main() {
 	conf.GetConf()
@@ -43,11 +48,15 @@ func main() {
 			}
 		case keyboard.KeySpace:
 			builder.WriteRune(' ')
+		case keyboard.KeyArrowDown, keyboard.KeyArrowUp, keyboard.KeyArrowLeft, keyboard.KeyArrowRight:
+			// TODO: 处理方向键
+			// 方向键控制history记录，可以进行上下翻页
 		default:
 			builder.WriteRune(char)
 		}
 
-		// 使用 ANSI 转义序列清空当前行，然后重新打印内容
+		// 刷新命令行显示
 		fmt.Printf("\r\033[1;32mTrans-CLI>\033[0m %s\033[K", builder.String())
 	}
+
 }
