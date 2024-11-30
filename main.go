@@ -19,6 +19,8 @@ var dict string
 var history []string
 var index int
 var dictTrie *trie.Trie
+var lastPredictions []string  // 保存上一次的预测结果
+var predictionIndex int       // 当前预测结果的索引
 
 func main() {
 	conf.GetConf()
@@ -81,26 +83,41 @@ func main() {
 			}
 		case keyboard.KeyTab:
 			// 处理预测功能
-			predictions := dictTrie.Search(builder.String())
-			if len(predictions) > 0 {
-				// 使用第一个预测结果
+			if len(lastPredictions) == 0 {
+				// 如果没有上次的预测结果，重新搜索
+				lastPredictions = dictTrie.Search(builder.String())
+				predictionIndex = 0
+			} else {
+				// 循环切换预测结果
+				predictionIndex = (predictionIndex + 1) % len(lastPredictions)
+			}
+			if len(lastPredictions) > 0 {
 				builder.Reset()
-				builder.WriteString(predictions[0])
+				builder.WriteString(lastPredictions[predictionIndex])
 			}
 		default:
 			builder.WriteRune(char)
 			// 显示预测结果
-			predictions := dictTrie.Search(builder.String())
-			if len(predictions) > 0 {
+			lastPredictions = dictTrie.Search(builder.String())
+			predictionIndex = 0  // 重置预测索引
+			if len(lastPredictions) > 0 {
 				// 最多显示3个预测结果
-				if len(predictions) > 3 {
-					predictions = predictions[:3]
+				displayPredictions := lastPredictions
+				if len(displayPredictions) > 3 {
+					displayPredictions = displayPredictions[:3]
 				}
-				fmt.Printf("\r\033[1;32mTrans-CLI>\033[0m %s\033[K", builder.String())
-				fmt.Printf("\n预测: %s", strings.Join(predictions, ", "))
-				fmt.Printf("\r\033[1A\033[1;32mTrans-CLI>\033[0m %s", builder.String())
+				// 清除当前行并显示输入
+				fmt.Printf("\r\033[K\033[1;32mTrans-CLI>\033[0m %s", builder.String())
+				// 清除下一行并显示预测
+				fmt.Printf("\n\033[K预测: %s", strings.Join(displayPredictions, ", "))
+				// 回到输入行
+				fmt.Printf("\033[1A\r\033[1;32mTrans-CLI>\033[0m %s", builder.String())
 			} else {
-				fmt.Printf("\r\033[1;32mTrans-CLI>\033[0m %s\033[K", builder.String())
+				lastPredictions = nil  // 清空预测结果
+				// 如果没有预测结果，清除所有预测显示
+				fmt.Printf("\r\033[K\033[1;32mTrans-CLI>\033[0m %s", builder.String())
+				fmt.Printf("\n\033[K")  // 清除预测行
+				fmt.Printf("\033[1A")   // 回到输入行
 			}
 		}
 
