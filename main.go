@@ -19,8 +19,8 @@ var dict string
 var history []string
 var index int
 var dictTrie *trie.Trie
-var lastPredictions []string  // 保存上一次的预测结果
-var predictionIndex int       // 当前预测结果的索引
+var lastPredictions []string // 保存上一次的预测结果
+var predictionIndex int      // 当前预测结果的索引
 
 func main() {
 	conf.GetConf()
@@ -99,7 +99,7 @@ func main() {
 			builder.WriteRune(char)
 			// 显示预测结果
 			lastPredictions = dictTrie.Search(builder.String())
-			predictionIndex = 0  // 重置预测索引
+			predictionIndex = 0 // 重置预测索引
 			if len(lastPredictions) > 0 {
 				// 最多显示3个预测结果
 				displayPredictions := lastPredictions
@@ -109,22 +109,33 @@ func main() {
 				// 清除当前行并显示输入
 				fmt.Printf("\r\033[K\033[1;32mTrans-CLI>\033[0m %s", builder.String())
 				// 清除下一行并显示预测
-				fmt.Printf("\n\033[K预测: %s", strings.Join(displayPredictions, ", "))
+				fmt.Printf("\n\033[K预测: %s", formatPredictions(displayPredictions))
 				// 回到输入行
 				fmt.Printf("\033[1A\r\033[1;32mTrans-CLI>\033[0m %s", builder.String())
 			} else {
-				lastPredictions = nil  // 清空预测结果
+				lastPredictions = nil // 清空预测结果
 				// 如果没有预测结果，清除所有预测显示
 				fmt.Printf("\r\033[K\033[1;32mTrans-CLI>\033[0m %s", builder.String())
-				fmt.Printf("\n\033[K")  // 清除预测行
-				fmt.Printf("\033[1A")   // 回到输入行
+				fmt.Printf("\n\033[K") // 清除预测行
+				fmt.Printf("\033[1A")  // 回到输入行
 			}
 		}
 
 		// 清空预测行并重新显示当前输入
-		fmt.Printf("\r\033[K")  // 清除当前行
-		fmt.Printf("\n\033[K")  // 清除预测行
+		fmt.Printf("\r\033[K") // 清除当前行
+		fmt.Printf("\n\033[K") // 清除预测行
 		fmt.Printf("\r\033[1A\033[1;32mTrans-CLI>\033[0m %s", builder.String())
 	}
 
+}
+
+func formatPredictions(predictions []string) string {
+	var result strings.Builder
+	for i, prediction := range predictions {
+		if i > 0 {
+			result.WriteString(", ")
+		}
+		result.WriteString(prediction)
+	}
+	return result.String()
 }

@@ -1,5 +1,10 @@
 package trie
 
+import (
+	"sort"
+	"strings"
+)
+
 // TrieNode 表示压缩前缀树的节点
 type TrieNode struct {
 	prefix   string           // 存储压缩的前缀
@@ -98,7 +103,13 @@ func (t *Trie) Insert(word string) {
 	node.word = word
 }
 
-// Search 搜索前缀，返回所有可能的补全词
+// 添加新的结构体来存储补全结果和权重
+type completionResult struct {
+	word   string
+	weight int // 权重值，用于排序
+}
+
+// Search 搜索前缀，返回智能排序后的补全词
 func (t *Trie) Search(prefix string) []string {
 	if prefix == "" {
 		return nil
@@ -131,19 +142,67 @@ func (t *Trie) Search(prefix string) []string {
 		node = child
 	}
 
-	// 收集所有可能的补全词
-	var results []string
-	t.collectWords(node, &results)
-	return results
+	// 收集并排序补全结果
+	results := make([]completionResult, 0)
+	t.collectCompletions(node, prefix, &results)
+
+	// 根据权重排序
+	sort.Slice(results, func(i, j int) bool {
+		if results[i].weight != results[j].weight {
+			return results[i].weight > results[j].weight
+		}
+		// 如果权重相同，按字母顺序排序
+		return results[i].word < results[j].word
+	})
+
+	// 提取排序后的单词
+	words := make([]string, len(results))
+	for i, result := range results {
+		words[i] = result.word
+	}
+
+	return words
 }
 
-// collectWords 收集从当前节点开始的所有完整单词
-func (t *Trie) collectWords(node *TrieNode, results *[]string) {
+// collectCompletions 收集补全结果并计算权重
+func (t *Trie) collectCompletions(node *TrieNode, prefix string, results *[]completionResult) {
 	if node.isEnd {
-		*results = append(*results, node.word)
+		weight := calculateWeight(node.word, prefix)
+		*results = append(*results, completionResult{
+			word:   node.word,
+			weight: weight,
+		})
 	}
 
 	for _, child := range node.children {
-		t.collectWords(child, results)
+		t.collectCompletions(child, prefix, results)
 	}
+}
+
+// calculateWeight 计算补全词的权重
+func calculateWeight(word, prefix string) int {
+	weight := 0
+	
+	// 完全匹配前缀的得分最高
+	if strings.HasPrefix(word, prefix) {
+		weight += 100
+	}
+
+	// 较短的词得分较高
+	weight += 50 - len(word)
+
+	// 常用词加分（可以根据需要扩展）
+	commonWords := map[string]bool{
+		"the": true,
+		"be":  true,
+		"to":  true,
+		"of":  true,
+		"and": true,
+		// 可以添加更多常用词
+	}
+	if commonWords[word] {
+		weight += 30
+	}
+
+	return weight
 }
