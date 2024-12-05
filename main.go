@@ -83,48 +83,57 @@ func main() {
 			}
 		case keyboard.KeyTab:
 			// 处理预测功能
+			words := strings.Fields(builder.String())
+			if len(words) == 0 {
+				continue
+			}
+
+			// 只对最后一个单词进行预测
+			prefix := words[len(words)-1]
 			if len(lastPredictions) == 0 {
-				// 如果没有上次的预测结果，重新搜索
-				lastPredictions = dictTrie.Search(builder.String())
+				lastPredictions = dictTrie.Search(prefix)
 				predictionIndex = 0
 			} else {
-				// 循环切换预测结果
 				predictionIndex = (predictionIndex + 1) % len(lastPredictions)
 			}
+
 			if len(lastPredictions) > 0 {
+				// 保留之前的单词，只替换最后一个单词
+				words[len(words)-1] = lastPredictions[predictionIndex]
 				builder.Reset()
-				builder.WriteString(lastPredictions[predictionIndex])
+				builder.WriteString(strings.Join(words, " "))
 			}
+
 		default:
 			builder.WriteRune(char)
 			// 显示预测结果
-			lastPredictions = dictTrie.Search(builder.String())
+			words := strings.Fields(builder.String())
+			if len(words) > 0 {
+				// 只对最后一个单词进行预测
+				prefix := words[len(words)-1]
+				lastPredictions = dictTrie.Search(prefix)
+			} else {
+				lastPredictions = nil
+			}
+
 			predictionIndex = 0 // 重置预测索引
 			if len(lastPredictions) > 0 {
-				// 最多显示3个预测结果
 				displayPredictions := lastPredictions
 				if len(displayPredictions) > 3 {
 					displayPredictions = displayPredictions[:3]
 				}
-				// 清除当前行并显示输入
+
+				// 显示当前输入和预测结果
 				fmt.Printf("\r\033[K\033[1;32mTrans-CLI>\033[0m %s", builder.String())
-				// 清除下一行并显示预测
 				fmt.Printf("\n\033[K预测: %s", formatPredictions(displayPredictions))
-				// 回到输入行
 				fmt.Printf("\033[1A\r\033[1;32mTrans-CLI>\033[0m %s", builder.String())
 			} else {
-				lastPredictions = nil // 清空预测结果
-				// 如果没有预测结果，清除所有预测显示
+				// 清除预测显示
 				fmt.Printf("\r\033[K\033[1;32mTrans-CLI>\033[0m %s", builder.String())
-				fmt.Printf("\n\033[K") // 清除预测行
-				fmt.Printf("\033[1A")  // 回到输入行
+				fmt.Printf("\n\033[K")
+				fmt.Printf("\033[1A")
 			}
 		}
-
-		// 清空预测行并重新显示当前输入
-		fmt.Printf("\r\033[K") // 清除当前行
-		fmt.Printf("\n\033[K") // 清除预测行
-		fmt.Printf("\r\033[1A\033[1;32mTrans-CLI>\033[0m %s", builder.String())
 	}
 
 }
