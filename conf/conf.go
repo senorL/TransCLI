@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/vrischmann/userdir"
 	"gopkg.in/validator.v2"
 	"gopkg.in/yaml.v2"
 )
@@ -38,13 +39,8 @@ func GetConf() *Config {
 // initConf initializes the configuration by loading from a YAML file.
 func initConf() error {
 	welcome()
-	wd, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("获取当前工作目录失败: %w", err)
-	}
 
-	// 构建配置文件路径
-	confFileRelPath := filepath.Join(wd, "trans.yaml")
+	confFileRelPath := filepath.Join(userdir.GetConfigHome(), "Transcli", "config.yaml")
 	content, err := os.ReadFile(confFileRelPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -80,6 +76,12 @@ func initConf() error {
 
 // createDefaultConfig 创建默认配置文件
 func createDefaultConfig(filePath string) error {
+	// 创建目录
+	dir := filepath.Dir(filePath)
+	err := os.MkdirAll(dir, os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("创建目录失败: %w", err)
+	}
 	defaultConfig := Config{
 		TModle: TModle{
 			APPID:  "20241123002209596",
@@ -91,7 +93,6 @@ func createDefaultConfig(filePath string) error {
 	if err != nil {
 		return fmt.Errorf("序列化默认配置失败: %w", err)
 	}
-
 	err = os.WriteFile(filePath, content, 0644)
 	if err != nil {
 		return fmt.Errorf("写入默认配置文件失败: %w", err)
